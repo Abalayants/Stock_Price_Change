@@ -6,13 +6,14 @@ import time
 from config import NEWS_API, STOCK_API, twilio_sid, twilio_auth_token
 
 
+# Choose a company
 STOCK = "TSLA"
 COMPANY_NAME = "Tesla Inc"
 
-# STOCKS
+# STOCK ENDPOINT
 STOCK_ENDPOINT = "https://www.alphavantage.co/query"
 
-# NEWS
+# NEWS ENDPOINT
 NEWS_ENDPOINT = "https://newsapi.org/v2/everything"
 
 news_parameters = {
@@ -43,7 +44,7 @@ month = time.strftime("%m")
 year = time.strftime("%Y")
 one_day = datetime.timedelta(days=1)
 
-
+# Function to get date to circumvent Sunday when the market is not open.
 def get_date():
     if time.strftime("%a") == "Sun":
         yesterdays_day = dt.today().day - (one_day.days * 2)
@@ -57,9 +58,6 @@ def get_date():
 
 
 # Get the closing price for yesterday and the day before yesterday.
-
-
-# Pull closing price
 def get_closing_price():
     yesterday = get_date()[0]
     day_before = get_date()[1]
@@ -79,9 +77,8 @@ def get_closing_price():
 # Work out the value of 5% of yesterday's closing stock price.
 yesterday_close = get_closing_price()[0]
 day_before_close = get_closing_price()[1]
-absolute_diff_in_price = round(yesterday_close - day_before_close, 2)
-percent_change = round(absolute_diff_in_price / day_before_close)
-change = "🔺" if yesterday_close > day_before_close else "🔻"
+percent_change = round(round(yesterday_close - day_before_close, 2) / day_before_close)
+change_emoji = "🔺" if yesterday_close > day_before_close else "🔻"
 
 # Actually fetch the first 3 articles for the COMPANY_NAME.
 news_response = requests.get(f"{NEWS_ENDPOINT}", params=news_parameters)
@@ -101,25 +98,9 @@ if percent_change >= 5:
     for i in range(3):
         message = client.messages \
                 .create(
-                    body=f"{STOCK}: {change}{percent_change}%\n"
+                    body=f"{STOCK}: {change_emoji}{percent_change}%\n"
                          f"HEADLINE: {titles[i]}\n"
                          f"BRIEF: {content[i]}",
                     from_=twilio_number,
                     to=my_number,
                 )
-
-
-# Optional: Format the SMS message like this:
-"""
-TSLA: 🔺2%
-Headline: Were Hedge Funds Right About Piling Into Tesla Inc. (TSLA)?. 
-Brief: We at Insider Monkey have gone over 821 13F filings that hedge funds and prominent investors are required to file 
-by the SEC The 13F filings show the funds' and investors' portfolio positions as of March 31st, near the height of the 
-coronavirus market crash.
-or
-"TSLA: 🔻5%
-Headline: Were Hedge Funds Right About Piling Into Tesla Inc. (TSLA)?. 
-Brief: We at Insider Monkey have gone over 821 13F filings that hedge funds and prominent investors are required to 
-file by the SEC The 13F filings show the funds' and investors' portfolio positions as of March 31st, near the height of 
-the coronavirus market crash.
-"""
